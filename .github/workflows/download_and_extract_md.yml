@@ -1,0 +1,47 @@
+name: Download and Extract MD Files
+
+on:
+  workflow_dispatch:
+    inputs:
+      repo:
+        description: 'GitHub repository name (e.g., owner/repo)'
+        required: true
+
+jobs:
+  download-and-extract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4.2.2
+
+      - name: Validate input repository
+        run: |
+          REPO=${{ github.event.inputs.repo }}
+          if ! [[ $REPO =~ ^[^/]+/[^/]+$ ]]; then
+            echo "Invalid repository format. Please use 'owner/repo'."
+            exit 1
+          fi
+
+      - name: Download repository
+        run: |
+          REPO=${{ github.event.inputs.repo }}
+          git clone https://github.com/$REPO.git repo
+          cd repo
+          git fetch --prune --unshallow --tags
+
+      - name: Extract MD files
+        run: |
+          REPO_NAME=$(basename $(echo ${{ github.event.inputs.repo }} | cut -d '/' -f 2))
+          mkdir -p docs-$REPO_NAME
+          find repo/ -type f -name "*.md" -exec cp --backup=numbered {} docs-$REPO_NAME/ \;
+
+      - name: Archive MD files
+        run: |
+          REPO_NAME=$(basename $(echo ${{ github.event.inputs.repo }} | cut -d '/' -f 2))
+          zip -r docs-$REPO_NAME.zip docs-$REPO_NAME/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: docs-${{ github.event.inputs.repo }}
+          path: docs-${{ github.event.inputs.repo }}.zip
