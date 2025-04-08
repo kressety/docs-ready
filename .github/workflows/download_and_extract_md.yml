@@ -58,18 +58,16 @@ jobs:
             fi
           done
 
-      - name: Sanitize artifact name and upload
+      - name: Sanitize artifact name
         run: |
           REPO="${{ github.event.inputs.repository }}"
-          # Replace '/' with '-' to create a valid artifact name
           SANITIZED_NAME=$(echo "$REPO" | tr '/' '-')
-          echo "Uploading artifact with name: docs-$SANITIZED_NAME"
-          # Use the sanitized name in the upload step
           echo "ARTIFACT_NAME=docs-$SANITIZED_NAME" >> $GITHUB_ENV
-        # Upload artifact using the sanitized name from the environment variable
+          echo "FOLDER_NAME=docs-$(echo "$REPO" | cut -d'/' -f2)" >> $GITHUB_ENV
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ARTIFACT_NAME }}
-          path: docs-*
+          path: ${{ env.FOLDER_NAME }}
           if-no-files-found: error
